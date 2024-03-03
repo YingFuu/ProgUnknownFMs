@@ -121,7 +121,7 @@ def predict_step(test_loader, device, model):
 
 
 
-####### train_step, val_step, predict_model of baseline GRC(Growth Rate Constrainted)model #######
+####### train_step, val_step, predict_model of baseline GRC(Growth Rate Constrained)model #######
 def train_step_grc(train_loader, device, model, loss_function, optimizer):
     '''
     train a model
@@ -345,7 +345,7 @@ def predict_step_joint(test_loader, device, model):
     return result
 
 
-####### train_step, val_step, predict_model of joint + GRC(Growth Rate Constrainted)model #######
+####### train_step, val_step, predict_model of joint + GRC(Growth Rate Constrained)model #######
 def train_step_joint_grc(train_loader, device, model,
                         loss_function_reg,
                         optimizer):
