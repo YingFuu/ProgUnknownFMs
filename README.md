@@ -17,7 +17,6 @@ src/							[Python source code]
 		seq_branch_dataloader.py
 		seq_grc_branch_dataloader.py
 	models/						[Model architecture definitions]
-<<<<<<< HEAD
 		branchLSTM.py
 		cnn.py					
 		fc.py
@@ -25,18 +24,6 @@ src/							[Python source code]
 		lstm_grc.py
 		lstm_joint.py
 		lstm_joint_grc.py
-=======
-		cnn.py
-		cnn_branch.py
-		fc.py
-		fc_branch.py
-		lstm.py
-		lstm_branch.py
-		lstm_grc.py
-		lstm_joint.py
-		lstm_joint_with_prob.py
-		lstm_joint_with_prob_grc.py
->>>>>>> c9f71501988cd6fbb336ffa91fce0168bae81658
 	config.py					[Configuration settings]
 	UMAP_dr.py					[Script for performing UMAP dimension reduction]
 	FM_identification.py		[Script for failure mode identification]
@@ -44,7 +31,6 @@ src/							[Python source code]
 	exp.py						[Script for conducting experiments]
 	result_analysis.py			[Script for analyzing the final results]
 	
-
 
 ```
 
