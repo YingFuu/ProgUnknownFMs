@@ -71,7 +71,7 @@ def time_series_clustering(train, train_2d, ds_name = 'FD003',
         # n_init: Number of time the k-means algorithm will be run with different centroid seeds. 
         #         The final results will be the best output of n_init consecutive runs in terms of inertia.
         model = TimeSeriesKMeans(n_clusters=n_clusters, metric="dtw", 
-                                 max_iter=100, n_init=5, random_state=42) 
+                                 max_iter=1000, n_init=5, random_state=42) 
         
         cluster_labels = model.fit_predict(scaled_time_series)
         
@@ -184,12 +184,19 @@ def __tube_surface(ax, points, color='r', alpha=0.5,
         ax.plot_trisurf(X.flatten(), Y.flatten(), Z.flatten(), triangles = tri, linewidth=0.2, antialiased=True, color=color, alpha=alpha)
 
 
-def trajectory_cluster_tube(train_2d_with_FMlabel, save_dir):
+def trajectory_cluster_tube(ds_name, train_2d_with_FMlabel, save_dir):
     '''
     Central path of two failure modes surrounded by tubes (by 1 std)
-    '''
+    '''    
+    
     df_fm_train_fm0 = train_2d_with_FMlabel.query('fm_label==0').reset_index(drop=True)
     df_fm_train_fm1 = train_2d_with_FMlabel.query('fm_label==1').reset_index(drop=True)
+    
+    fm0_units = df_fm_train_fm0['id'].unique()
+    fm1_units = df_fm_train_fm1['id'].unique()
+    print(f'{len(fm0_units) = }')
+    print(f'{len(fm1_units) = }')
+    print(f'{fm0_units = }, {fm1_units = }')
     
     agg_dr_fm0 = __agg_mean_std(df_fm_train_fm0)
     agg_dr_fm1 = __agg_mean_std(df_fm_train_fm1)
@@ -211,13 +218,72 @@ def trajectory_cluster_tube(train_2d_with_FMlabel, save_dir):
     __tube_surface(ax, path0, alpha=0.2, color='b')
     __tube_surface(ax, path1, alpha=0.2, color='r')
     plt.savefig(os.path.join(save_dir, f'trajectory-tube-{ds_name}.pdf'))
+    plt.savefig(os.path.join(save_dir, f'trajectory-tube-{ds_name}.svg'))
     plt.show()
     
     
 
-
-if __name__ == "__main__":
     
+def find_equal_value_keys(data_dict):
+    '''
+    Identify the keys that have the same value in a dictionary. 
+    Convert each value to a tuple to make it hashable, then use this tuple 
+    as the key in another dictionary.        
+    '''
+    value_to_keys = {}    
+    for key, value in data_dict.items():
+        value_tuple = tuple(value) if isinstance(value, list) else tuple(value.tolist()) 
+        if value_tuple in value_to_keys:
+            value_to_keys[value_tuple].append(key)
+        else:
+            value_to_keys[value_tuple] = [key]
+    
+    equal_value_keys_with_values = [(keys, list(value_tuple)) for value_tuple, keys in value_to_keys.items() if len(keys) > 1]
+    
+    return equal_value_keys_with_values
+
+
+def FD004_FM_train():
+    '''
+    Determine the failure mode for the training units in dataset FD004.
+    '''
+    ds_name = 'FD004'
+    fm0_dict = {}
+    fm1_dict = {}
+    for WC in range(6):
+        print(f'{   WC = }')
+        save_dir = f'../result-umap-0730-2024/WC_{WC}-{ds_name}-unsupervised-linearRUL-neighbors-80-minDist-1-2D'
+        train_df = pd.read_csv(os.path.join(save_dir, f'{ds_name}-train.csv'))
+        train_df_2d = pd.read_csv(os.path.join(save_dir, f'{ds_name}-2d-train.csv'))
+        
+        # get failure mode from train set
+        _, train_2d_with_FMlabel = time_series_clustering(train_df, train_df_2d, 
+                                             ds_name = ds_name,
+                                             n_clusters = 2, 
+                                             save_dir = save_dir)
+        df_fm_train_fm0 = train_2d_with_FMlabel.query('fm_label==0').reset_index(drop=True)
+        df_fm_train_fm1 = train_2d_with_FMlabel.query('fm_label==1').reset_index(drop=True)
+        
+        fm0_units = df_fm_train_fm0['id'].unique()
+        fm1_units = df_fm_train_fm1['id'].unique()
+        
+        fm0_dict[WC] = fm0_units
+        fm1_dict[WC] = fm1_units
+        
+        plot_trajectory_by_fm(train_2d_with_FMlabel, save_dir)        
+
+    equal_keys0 = find_equal_value_keys(fm0_dict)
+    print(equal_keys0)
+
+    equal_keys1 = find_equal_value_keys(fm1_dict)
+    print(equal_keys1)
+
+
+
+def FD003_FM_train():
+    '''
+    Determine the failure mode for the training units in dataset FD004.
+    '''
     ds_name = 'FD003'        
     save_dir = f'../result-umap/{ds_name}-unsupervised-linearRUL-neighbors-80-minDist-1-2D'
     train_df = pd.read_csv(os.path.join(save_dir, f'{ds_name}-train.csv'))
@@ -225,13 +291,105 @@ if __name__ == "__main__":
     
     # get failure mode from train set
     _, train_2d_with_FMlabel = time_series_clustering(train_df, train_df_2d, 
-                                         ds_name = ds_name,
-                                         n_clusters = 2, 
-                                         save_dir = save_dir)
+                                          ds_name = ds_name,
+                                          n_clusters = 2, 
+                                          save_dir = save_dir)
     
-    # plot_trajectory_by_fm(train_2d_with_FMlabel, save_dir)
-    trajectory_cluster_tube(train_2d_with_FMlabel, save_dir)
+    plot_trajectory_by_fm(train_2d_with_FMlabel, save_dir)
+    trajectory_cluster_tube('FD003', train_2d_with_FMlabel, save_dir)
+
+    
+
+def robustness_umap_fm(ds_name = 'FD003'): 
+    
+    '''
+    To verify the robustness of dimension reduction technique, UMAP, 
+    we consider additional cases where we randomly retain 70%, 50%, 30%, 20%, and 10% 
+    of the total training units. We then perform UMAP dimension reduction on these 
+    reduced datasets and utilize the proposed time series clustering to identify 
+    the failure modes within these units. 
+    Finally, we compare the failure modes identified in these reduced datasets with 
+    those identified from the full dataset, which includes all training units. 
+    We record the number of units misclassified between these two scenarios, 
+    such as those labeled as failure mode 1 in the reduced datasets but actually 
+    categorized as failure mode 0 in the full dataset, and vice versa.
+    '''
         
+    # failure mode labels for training units
+    fm0_unit_id_lst = [1.,   3.,   4.,   5.,   6.,   8.,  12.,  13.,  14.,  15.,  22.,
+                 23.,  25.,  26.,  28.,  29.,  30.,  31.,  32.,  35.,  36.,  40.,
+                 44.,  47.,  48.,  50.,  51.,  52.,  53.,  54.,  56.,  58.,  61.,
+                 63.,  64.,  65.,  66.,  67.,  68.,  69.,  70.,  74.,  76.,  78.,
+                 79.,  80.,  83.,  86.,  87.,  90.,  91.,  92.,  93.,  95.,  99., 
+                 100.]
+    
+    fm1_unit_id_lst = [ 2.,  7.,  9., 10., 11., 16., 17., 18., 19., 20., 21., 24., 27.,
+                 33., 34., 37., 38., 39., 41., 42., 43., 45., 46., 49., 55., 57.,
+                 59., 60., 62., 71., 72., 73., 75., 77., 81., 82., 84., 85., 88.,
+                 89., 94., 96., 97., 98.]
+    
+    n_components = 2
+    n_neighbors = 80
+    min_dist = 1
+    result_dict = {}
+    for ratio in [0.3, 0.5, 0.7, 0.8, 0.85, 0.9]:
+        save_dir = f'../result-umap-0722-2024/{ds_name}-dropRatio-{ratio}-unsupervised-linearRUL-neighbors-{n_neighbors}-minDist-{min_dist}-{n_components}D'           
+        train_df = pd.read_csv(os.path.join(save_dir, f'{ds_name}-train.csv'))
+        train_df_2d = pd.read_csv(os.path.join(save_dir, f'{ds_name}-2d-train.csv'))
+        
+        _, train_2d_with_FMlabel = time_series_clustering(train_df, train_df_2d, 
+                                              ds_name = ds_name,
+                                              n_clusters = 2, 
+                                              save_dir = save_dir)
+        df_fm_train_fm0 = train_2d_with_FMlabel.query('fm_label==0').reset_index(drop=True)
+        df_fm_train_fm1 = train_2d_with_FMlabel.query('fm_label==1').reset_index(drop=True)
+        
+        fm0_units = df_fm_train_fm0['id'].unique()
+        fm1_units = df_fm_train_fm1['id'].unique()
+    
+        # Count the matches
+        count1_1 = sum(1 for i in fm0_units if i in fm0_unit_id_lst) 
+        count1_2 = sum(1 for j in fm1_units if j in fm1_unit_id_lst)
+        count2_1 = sum(1 for i in fm0_units if i in fm1_unit_id_lst) 
+        count2_2 = sum(1 for j in fm1_units if j in fm0_unit_id_lst)
+    
+        
+        count = max(count1_1 + count1_2, count2_1 + count2_2)
+        print(f'count = {count}')
+        result_dict[ratio] = count
+    
+    return result_dict
+    
+    
+
+
+if __name__ == "__main__":
+    
+    FD003_FM_train()
+    FD004_FM_train()
+    robustness_umap_fm()
+    
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

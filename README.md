@@ -6,21 +6,35 @@ This repository contains the Python code of our paper titled "[Degradation Model
 
 ```dataset/					collected datasets
 dataset/						[Collected dataset]
+	Aircraft Engine/CMaps		[CMAPSS Jet Engine Simulated Data]
 src/							[Python source code]
 	data/						[Code for data preprocessing]
+		JetEngine.py			[CMAPSS data preparation] 
+		util.py					[Utility functions for data preprocessing]
 	dataloader/					[Data loading utilities]
+		sequence_dataloader.py				
+		seq_grc_dataloader.py
+		seq_branch_dataloader.py
+		seq_grc_branch_dataloader.py
 	models/						[Model architecture definitions]
+		cnn.py
+		cnn_branch.py
+		fc.py
+		fc_branch.py
+		lstm.py
+		lstm_branch.py
+		lstm_grc.py
+		lstm_joint.py
+		lstm_joint_with_prob.py
+		lstm_joint_with_prob_grc.py
 	config.py					[Configuration settings]
 	UMAP_dr.py					[Script for performing UMAP dimension reduction]
 	FM_identification.py		[Script for failure mode identification]
-	train_evaluate.py			[Functions for training, evaluation, and prediction]
+	train_evaluate.py			[Functions for model training and evaluation]
 	exp.py						[Script for conducting experiments]
 	result_analysis.py			[Script for analyzing the final results]
 	
-result/							[Computational results]
-    figures-0722-supervised-False-align-False-linear/    [UMAP dimension reduction results]
-    result-FD003-0101-BranchLSTM-loss_fm-0.12/           [Benchmark results of branch LSTM]
-    result-FD003-1210									 [Results of proposed models]
+
 
 ```
 

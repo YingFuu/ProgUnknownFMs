@@ -19,7 +19,6 @@ class Config_basic():
 
         # pytorch
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.seed = 42
 
         # training
         self.lr = 0.01

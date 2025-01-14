@@ -5,9 +5,7 @@ Created on Sun May 28 16:11:45 2023
 @author: Ying Fu
 """
 import torch
-torch.manual_seed(42)
 import numpy as np
-np.random.seed(42)
 import pandas as pd
 from sklearn.model_selection import KFold
 
@@ -97,21 +95,20 @@ def predict_step(test_loader, device, model):
     num_elements = len(test_loader.dataset)
     
     result = torch.zeros((num_elements,3))
-    model.eval()
-    with torch.no_grad():
-        for i, (X, y, data_id) in enumerate(test_loader):
-            X = X.to(device)
-            y = y.to(device)
-            data_id = data_id.to(device)
-            start = i*batch_size
-            end = start + batch_size
-            if i == num_batches - 1:
-                end = num_elements
-            y_pred= model(X)
-            
-            result[start:end, 0] = data_id
-            result[start:end, 1] = y_pred
-            result[start:end, 2] = y
+    
+    for i, (X, y, data_id) in enumerate(test_loader):
+        X = X.to(device)
+        y = y.to(device)
+        data_id = data_id.to(device)
+        start = i*batch_size
+        end = start + batch_size
+        if i == num_batches - 1:
+            end = num_elements
+        y_pred= model(X)
+        
+        result[start:end, 0] = data_id
+        result[start:end, 1] = y_pred
+        result[start:end, 2] = y
         
     result = tensor_2_numpy(result)        
     result = pd.DataFrame(result, columns = ['unit_id',
@@ -199,23 +196,22 @@ def predict_step_grc(test_loader, device, model):
     num_elements = len(test_loader.dataset)
     
     result = torch.zeros((num_elements,3))
-    model.eval()
-    with torch.no_grad():
-        for i, (X0, _, X1, y1, data_id) in enumerate(test_loader):
-            X0 = X0.to(device)
-            # y0 = y0.to(device)
-            X1 = X1.to(device)
-            y1 = y1.to(device)        
-            data_id = data_id.to(device)
-            start = i*batch_size
-            end = start + batch_size
-            if i == num_batches - 1:
-                end = num_elements
-            y_pred0, y_pred1= model(X0,X1)
-            
-            result[start:end, 0] = data_id
-            result[start:end, 1] = y_pred1
-            result[start:end, 2] = y1
+    
+    for i, (X0, _, X1, y1, data_id) in enumerate(test_loader):
+        X0 = X0.to(device)
+        # y0 = y0.to(device)
+        X1 = X1.to(device)
+        y1 = y1.to(device)        
+        data_id = data_id.to(device)
+        start = i*batch_size
+        end = start + batch_size
+        if i == num_batches - 1:
+            end = num_elements
+        y_pred0, y_pred1= model(X0,X1)
+        
+        result[start:end, 0] = data_id
+        result[start:end, 1] = y_pred1
+        result[start:end, 2] = y1
         
     result = tensor_2_numpy(result)        
     result = pd.DataFrame(result, columns = ['unit_id',
@@ -259,7 +255,7 @@ def train_step_joint(train_loader, device, model,
         loss_fm = loss_function_cls(fm_p, fm)
         # print(f"{loss_rul = }")
         # print(f"{loss_fm = }")
-        loss = 10*loss_rul + loss_fm  # loss_fm may be two times of loss_rul
+        loss = 10/11*loss_rul + 1/11*loss_fm  # loss_fm may be two times of loss_rul
         loss.backward()
         optimizer.step()
 
@@ -295,7 +291,7 @@ def val_step_joint(val_loader, device, model, loss_function_reg):
             loss_fm = loss_function_cls(fm_p, fm)
             # print(f"{loss_rul = }")   
             # print(f"{loss_fm = }")
-            loss = 10*loss_rul + loss_fm  # loss_fm may be two times of loss_rul
+            loss = 10/11*loss_rul + 1/11*loss_fm  # loss_fm may be two times of loss_rul
             total_loss += loss.item()
     avg_loss = total_loss / num_batches
 
@@ -317,24 +313,22 @@ def predict_step_joint(test_loader, device, model):
     num_elements = len(test_loader.dataset)
 
     result = torch.zeros((num_elements, 5))
-    model.eval()
-    with torch.no_grad():
-        for i, (X, y, data_id, fm_label) in enumerate(test_loader):
-            X = X.to(device)
-            y = y.to(device)
-            fm = fm_label.to(device)
-            start = i * batch_size
-            end = start + batch_size
-            if i == num_batches - 1:
-                end = num_elements
-    
-            fm_p, rul_0, rul_1, rul_p = model(X)
-    
-            result[start:end, 0] = data_id
-            result[start:end, 1] = fm_p
-            result[start:end, 2] = fm
-            result[start:end, 3] = rul_p
-            result[start:end, 4] = y
+    for i, (X, y, data_id, fm_label) in enumerate(test_loader):
+        X = X.to(device)
+        y = y.to(device)
+        fm = fm_label.to(device)
+        start = i * batch_size
+        end = start + batch_size
+        if i == num_batches - 1:
+            end = num_elements
+
+        fm_p, rul_0, rul_1, rul_p = model(X)
+
+        result[start:end, 0] = data_id
+        result[start:end, 1] = fm_p
+        result[start:end, 2] = fm
+        result[start:end, 3] = rul_p
+        result[start:end, 4] = y
 
     result = tensor_2_numpy(result)
     result = pd.DataFrame(result, columns=['unit_id',
@@ -444,26 +438,24 @@ def predict_step_joint_grc(test_loader, device, model):
     num_elements = len(test_loader.dataset)
 
     result = torch.zeros((num_elements, 5))
-    model.eval()
-    with torch.no_grad():
-        for i, (X0, y0, X1, y1, data_id, fm_label) in enumerate(test_loader):
-            X0 = X0.to(device)
-            y0 = y0.to(device)
-            X1 = X1.to(device)
-            y1 = y1.to(device)
-            fm = fm_label.to(device)
-            start = i * batch_size
-            end = start + batch_size
-            if i == num_batches - 1:
-                end = num_elements
-    
-            _, fm_p1, _, rul_p1 = model(X0, X1)
-    
-            result[start:end, 0] = data_id
-            result[start:end, 1] = fm_p1
-            result[start:end, 2] = fm
-            result[start:end, 3] = rul_p1
-            result[start:end, 4] = y1
+    for i, (X0, y0, X1, y1, data_id, fm_label) in enumerate(test_loader):
+        X0 = X0.to(device)
+        y0 = y0.to(device)
+        X1 = X1.to(device)
+        y1 = y1.to(device)
+        fm = fm_label.to(device)
+        start = i * batch_size
+        end = start + batch_size
+        if i == num_batches - 1:
+            end = num_elements
+
+        _, fm_p1, _, rul_p1 = model(X0, X1)
+
+        result[start:end, 0] = data_id
+        result[start:end, 1] = fm_p1
+        result[start:end, 2] = fm
+        result[start:end, 3] = rul_p1
+        result[start:end, 4] = y1
 
     result = tensor_2_numpy(result)
     result = pd.DataFrame(result, columns=['unit_id',
